@@ -14,7 +14,14 @@ const db = mysql.createConnection({
 const upload_image = async (req, res, next) => {
       try {
             const imageBuffer = req.file.buffer;
-            const fileType = req.file.mimetype.startsWith("image") ? "jpg" : "pdf";
+
+    // Extract the file extension from the mimetype (e.g., "image/png" -> "png")
+    const mimeTypeParts = req.file.mimetype.split("/");
+    if (mimeTypeParts[0] !== "image") {
+      return res.status(400).json({ message: "Uploaded file is not an image." });
+    }
+    const fileType = mimeTypeParts[1]; // e.g., "jpeg", "png", "gif"
+
 
             // Store image in MySQL
             const sql = "INSERT INTO images (image, fileType) VALUES (?, ?)";
