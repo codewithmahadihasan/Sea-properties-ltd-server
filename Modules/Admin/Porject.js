@@ -5,6 +5,7 @@ const add_project = async (req, res, next) => {
     const body = req.body;
     const name = body.name 
     body.sku = name.toLowerCase().replace(' ', '_');
+    body.created_date = new Date();
 
     try {
         const result = await project_collection.insertOne(body);
@@ -49,40 +50,36 @@ const update_project = async (req, res, next) => {
 
 const get_project_by_id = async (req, res, next) => {
     try {
-        // Sanitize input: Ensure that the project name is properly formatted
-        const id = req.query.project_id ;
+        const id = req.query.project_id;
 
         if (!id) {
-            // If project name is not provided, return a 400 Bad Request response
             return res.status(400).send({
                 status: false,
-                message: "Project name is required"
+                message: "Project ID is required"
             });
         }
 
-        // Define aggregation pipeline to match project by name
+        // Aggregation pipeline with sorting (Last In First Out)
         const pipeline = [
-            { $match: { sku: id } }
+            { $match: { sku: id } },
+            { $sort: { created_date: -1 } }, // newest first
+            { $limit: 1 } // only take the latest one
         ];
 
-        // Execute aggregation pipeline
         const result = await project_collection.aggregate(pipeline).toArray();
 
         if (result.length > 0) {
-            // If project found, return it
             return res.send({
                 status: true,
                 data: result[0]
             });
         } else {
-            // If project not found, return 404 response
             return res.status(404).send({
                 status: false,
                 message: "Project not found"
             });
         }
     } catch (err) {
-        // If an error occurs, return a 500 response with error message
         console.error("Failed to fetch project:", err);
         return res.status(500).send({
             status: false,
@@ -90,6 +87,7 @@ const get_project_by_id = async (req, res, next) => {
         });
     }
 };
+
 
 
 const delete_project = async (req, res, next) => {
